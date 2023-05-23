@@ -919,8 +919,9 @@ fun jumpOpcodes(): Pair<Array<MicroOpcode>, List<MicroOpOffset>> {
     microcodeArray[320] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.REGA, Register.ADDRESS_WIDTH, Register.IP, endOfInstruction = true)
     
     offsets.add(MicroOpOffset("Register Call", 352))
-    microcodeArray[352] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.NEXT_INSTR_ADDR, Register.ADDRESS_WIDTH, Register.LN)
-    microcodeArray[353] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.REGA, Register.ADDRESS_WIDTH, Register.IP, endOfInstruction = true)
+    microcodeArray[352] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.NEXT_INSTR_ADDR, Register.ADDRESS_WIDTH, Register.SCRATCH_0)
+    microcodeArray[353] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.REGA, Register.ADDRESS_WIDTH, Register.IP)
+    microcodeArray[354] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.SCRATCH_0, Register.ADDRESS_WIDTH, Register.LN, endOfInstruction = true)
     
     return Pair(microcodeArray, offsets)
 }
