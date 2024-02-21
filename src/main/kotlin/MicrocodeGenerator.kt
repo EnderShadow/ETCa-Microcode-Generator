@@ -107,13 +107,13 @@ enum class Register(val value: Int) {
     IP(16),
     FLAG(17),
     INT_IP(18),
-    INT_SP(19),
+    INT_RET_IP(19),
     INT_MASK(20),
     INT_PENDING(21),
     INT_CAUSE(22),
     INT_DATA(23),
-    INT_RET_IP(24),
-    INT_RET_SP(25),
+    CR_SCRATCH_0(24),
+    CR_SCRATCH_1(25),
     PRIV(26),
     INT_RET_PRIV(27),
     NO_CACHE_START(28),
@@ -212,11 +212,11 @@ enum class Opcode(val value: Int, val opcode: MicroALUOpcode, val flags: Boolean
     ADC(16, MicroALUOpcode.ADC, flags = true),
     SBB(17, MicroALUOpcode.SBB, flags = true),
     RSBB(18, MicroALUOpcode.SBB, flags = true),
-    ROR(19, MicroALUOpcode.ROR, flags = true),
-    SHL(20, MicroALUOpcode.SHL, flags = true),
-    ROL(21, MicroALUOpcode.ROL, flags = true),
-    SHR(22, MicroALUOpcode.LSHR, flags = true),
-    ASHR(23, MicroALUOpcode.ASHR, flags = true),
+    ASHR(19, MicroALUOpcode.ASHR, flags = true),
+    ROL(20, MicroALUOpcode.ROL, flags = true),
+    ROR(21, MicroALUOpcode.ROR, flags = true),
+    SHL(22, MicroALUOpcode.SHL, flags = true),
+    SHR(23, MicroALUOpcode.LSHR, flags = true),
     SLO(28, MicroALUOpcode.INVALID, signExtend = false),
     LEA(30, MicroALUOpcode.INVALID, signExtend = false);
     
@@ -238,7 +238,7 @@ data class MicroOpOffset(val name: String, val offsetMicroOps: Int) {
 }
 
 fun main() {
-    val romPath = "/home/matthew/.local/share/godot/app_userdata/Turing Complete/schematics/component_factory/ETCA/ETCA_10001E0FF_F_9/Microcode/Microcode ROM/3777901440551170426.rom"
+    val romPath = "/home/matthew/.local/share/godot/app_userdata/Turing Complete/schematics/component_factory/ETCA/ETCA_10001E0FF_7_9/Microcode/Microcode ROM/3777901440551170426.rom"
     
     val rawMicrocode = ByteBuffer.allocate(32768)
     rawMicrocode.order(ByteOrder.LITTLE_ENDIAN)
@@ -360,7 +360,12 @@ fun main() {
     //for(i in 0 until pos)
     //    println("0x${microcode.get(i).toString(16).uppercase().padStart(8, '0')}")
     
-    File(romPath).writeBytes(rawMicrocode.array())
+    val file = File(romPath)
+    if(!file.exists()) {
+        System.err.println("Destination file does not exist!")
+    } else {
+        file.writeBytes(rawMicrocode.array())
+    }
 }
 
 fun regOpcode(opcode: Int): Pair<Array<MicroOpcode>, MicroOpOffset> {
@@ -488,7 +493,7 @@ fun readCROpcode(): Array<MicroOpcode> {
     microcodeArray[14] = MicroOpcode.LoadConst(Register.SCRATCH_0, 0x01E0FF)
     microcodeArray[15] = MicroOpcode.ALURegOp(MicroALUOpcode.OR, Register.REGA, Register.SCRATCH_0, Register.REGA, endOfInstruction = true, updateIPToNextInstruction = true)
     // CPUID2
-    microcodeArray[16] = MicroOpcode.LoadConst(Register.REGA, 0xF)
+    microcodeArray[16] = MicroOpcode.LoadConst(Register.REGA, 0x7)
     microcodeArray[17] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.REGA, Register.LOG_OPERATION_SIZE, Register.REGA, endOfInstruction = true, updateIPToNextInstruction = true)
     // FEAT
     microcodeArray[20] = MicroOpcode.LoadConst(Register.REGA, 0x9)
@@ -498,7 +503,7 @@ fun readCROpcode(): Array<MicroOpcode> {
     // INT_PC
     microcodeArray[28] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.INT_IP, Register.LOG_OPERATION_SIZE, Register.REGA, endOfInstruction = true, updateIPToNextInstruction = true)
     // INT_SP
-    microcodeArray[32] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.INT_SP, Register.LOG_OPERATION_SIZE, Register.REGA, endOfInstruction = true, updateIPToNextInstruction = true)
+    microcodeArray[32] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.INT_RET_IP, Register.LOG_OPERATION_SIZE, Register.REGA, endOfInstruction = true, updateIPToNextInstruction = true)
     // INT_MASK
     microcodeArray[36] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.INT_MASK, Register.LOG_OPERATION_SIZE, Register.REGA, endOfInstruction = true, updateIPToNextInstruction = true)
     // INT_PENDING
@@ -508,9 +513,9 @@ fun readCROpcode(): Array<MicroOpcode> {
     // INT_DATA
     microcodeArray[48] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.INT_DATA, Register.LOG_OPERATION_SIZE, Register.REGA, endOfInstruction = true, updateIPToNextInstruction = true)
     // INT_RET_PC
-    microcodeArray[52] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.INT_RET_IP, Register.LOG_OPERATION_SIZE, Register.REGA, endOfInstruction = true, updateIPToNextInstruction = true)
+    microcodeArray[52] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.CR_SCRATCH_0, Register.LOG_OPERATION_SIZE, Register.REGA, endOfInstruction = true, updateIPToNextInstruction = true)
     // INT_RET_SP
-    microcodeArray[56] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.INT_RET_SP, Register.LOG_OPERATION_SIZE, Register.REGA, endOfInstruction = true, updateIPToNextInstruction = true)
+    microcodeArray[56] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.CR_SCRATCH_1, Register.LOG_OPERATION_SIZE, Register.REGA, endOfInstruction = true, updateIPToNextInstruction = true)
     // PRIV
     microcodeArray[60] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.PRIV, Register.LOG_OPERATION_SIZE, Register.REGA, endOfInstruction = true, updateIPToNextInstruction = true)
     // INT_RET_PRIV
@@ -558,7 +563,7 @@ fun writeCROpcode(): Array<MicroOpcode> {
     // INT_PC
     microcodeArray[15] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.REGA, Register.LOG_OPERATION_SIZE, Register.INT_IP, endOfInstruction = true, updateIPToNextInstruction = true)
     // INT_SP
-    microcodeArray[16] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.REGA, Register.LOG_OPERATION_SIZE, Register.INT_SP, endOfInstruction = true, updateIPToNextInstruction = true)
+    microcodeArray[16] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.REGA, Register.LOG_OPERATION_SIZE, Register.INT_RET_IP, endOfInstruction = true, updateIPToNextInstruction = true)
     // INT_MASK
     microcodeArray[17] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.REGA, Register.LOG_OPERATION_SIZE, Register.INT_MASK, endOfInstruction = true, updateIPToNextInstruction = true)
     // INT_PENDING
@@ -568,9 +573,9 @@ fun writeCROpcode(): Array<MicroOpcode> {
     // INT_DATA
     microcodeArray[20] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.INVALID, Register.LOG_OPERATION_SIZE, Register.INVALID, endOfInstruction = true, updateIPToNextInstruction = true)
     // INT_RET_PC
-    microcodeArray[21] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.REGA, Register.LOG_OPERATION_SIZE, Register.INT_RET_IP, endOfInstruction = true, updateIPToNextInstruction = true)
+    microcodeArray[21] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.REGA, Register.LOG_OPERATION_SIZE, Register.CR_SCRATCH_0, endOfInstruction = true, updateIPToNextInstruction = true)
     // INT_RET_SP
-    microcodeArray[22] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.REGA, Register.LOG_OPERATION_SIZE, Register.INT_RET_SP, endOfInstruction = true, updateIPToNextInstruction = true)
+    microcodeArray[22] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.REGA, Register.LOG_OPERATION_SIZE, Register.CR_SCRATCH_1, endOfInstruction = true, updateIPToNextInstruction = true)
     // PRIV
     microcodeArray[23] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.REGA, Register.LOG_OPERATION_SIZE, Register.PRIV, endOfInstruction = true, updateIPToNextInstruction = true)
     // INT_RET_PRIV
@@ -600,9 +605,7 @@ fun interrupts(): Pair<Array<MicroOpcode>, List<MicroOpOffset>> {
     microcodeArray[4] = MicroOpcode.LoadConst(Register.INT_CAUSE, 4)
     microcodeArray[5] = MicroOpcode.LoadConst(Register.INT_DATA, -1)
     microcodeArray[6] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.IP, Register.ADDRESS_WIDTH, Register.INT_RET_IP)
-    microcodeArray[7] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.SP, Register.ADDRESS_WIDTH, Register.INT_RET_SP)
     microcodeArray[8] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.INT_IP, Register.ADDRESS_WIDTH, Register.IP)
-    microcodeArray[9] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.INT_SP, Register.ADDRESS_WIDTH, Register.SP)
     microcodeArray[10] = MicroOpcode.ALUImmOp(MicroALUOpcode.ZEXT, Register.PRIV, 0, Register.INT_RET_PRIV)
     microcodeArray[11] = MicroOpcode.LoadConst(Register.PRIV, 1)
     microcodeArray[12] = MicroOpcode.ALUImmOp(MicroALUOpcode.OR, Register.HANDLING_INTERRUPT, 1, Register.HANDLING_INTERRUPT, endOfInstruction = true, operationSizeOverrideValue = OperationSize.QUAD)
@@ -627,9 +630,7 @@ fun interrupts(): Pair<Array<MicroOpcode>, List<MicroOpOffset>> {
     microcodeArray[68] = MicroOpcode.LoadConst(Register.INT_CAUSE, 2)
     microcodeArray[69] = MicroOpcode.LoadConst(Register.INT_DATA, -1)
     microcodeArray[70] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.IP, Register.ADDRESS_WIDTH, Register.INT_RET_IP)
-    microcodeArray[71] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.SP, Register.ADDRESS_WIDTH, Register.INT_RET_SP)
     microcodeArray[72] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.INT_IP, Register.ADDRESS_WIDTH, Register.IP)
-    microcodeArray[73] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.INT_SP, Register.ADDRESS_WIDTH, Register.SP)
     microcodeArray[74] = MicroOpcode.ALUImmOp(MicroALUOpcode.ZEXT, Register.PRIV, 0, Register.INT_RET_PRIV)
     microcodeArray[75] = MicroOpcode.LoadConst(Register.PRIV, 1)
     microcodeArray[76] = MicroOpcode.ALUImmOp(MicroALUOpcode.OR, Register.HANDLING_INTERRUPT, 1, Register.HANDLING_INTERRUPT, endOfInstruction = true, operationSizeOverrideValue = OperationSize.QUAD)
@@ -642,9 +643,7 @@ fun interrupts(): Pair<Array<MicroOpcode>, List<MicroOpOffset>> {
     microcodeArray[96] = MicroOpcode.LoadConst(Register.INT_CAUSE, 1)
     microcodeArray[97] = MicroOpcode.LoadConst(Register.INT_DATA, -1)
     microcodeArray[98] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.IP, Register.ADDRESS_WIDTH, Register.INT_RET_IP)
-    microcodeArray[99] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.SP, Register.ADDRESS_WIDTH, Register.INT_RET_SP)
     microcodeArray[100] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.INT_IP, Register.ADDRESS_WIDTH, Register.IP)
-    microcodeArray[101] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.INT_SP, Register.ADDRESS_WIDTH, Register.SP)
     microcodeArray[102] = MicroOpcode.ALUImmOp(MicroALUOpcode.ZEXT, Register.PRIV, 0, Register.INT_RET_PRIV)
     microcodeArray[103] = MicroOpcode.LoadConst(Register.PRIV, 1)
     microcodeArray[104] = MicroOpcode.ALUImmOp(MicroALUOpcode.OR, Register.HANDLING_INTERRUPT, 1, Register.HANDLING_INTERRUPT, endOfInstruction = true, operationSizeOverrideValue = OperationSize.QUAD)
@@ -654,12 +653,10 @@ fun interrupts(): Pair<Array<MicroOpcode>, List<MicroOpOffset>> {
     
     // Will never be triggered when an interrupt is already being handled
     // Pending CR is already set
-    microcodeArray[128] = MicroOpcode.LoadConst(Register.INT_CAUSE, 5)
+    microcodeArray[128] = MicroOpcode.LoadConst(Register.INT_CAUSE, 8)
     microcodeArray[129] = MicroOpcode.ALUImmOp(MicroALUOpcode.SEXT, Register.IO_BUS_IDENTIFIER, 3, Register.INT_DATA)
     microcodeArray[130] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.IP, Register.ADDRESS_WIDTH, Register.INT_RET_IP)
-    microcodeArray[131] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.SP, Register.ADDRESS_WIDTH, Register.INT_RET_SP)
     microcodeArray[132] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.INT_IP, Register.ADDRESS_WIDTH, Register.IP)
-    microcodeArray[133] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.INT_SP, Register.ADDRESS_WIDTH, Register.SP)
     microcodeArray[134] = MicroOpcode.ALUImmOp(MicroALUOpcode.ZEXT, Register.PRIV, 0, Register.INT_RET_PRIV)
     microcodeArray[135] = MicroOpcode.LoadConst(Register.PRIV, 1)
     microcodeArray[136] = MicroOpcode.ALUImmOp(MicroALUOpcode.OR, Register.HANDLING_INTERRUPT, 1, Register.HANDLING_INTERRUPT, endOfInstruction = true, operationSizeOverrideValue = OperationSize.QUAD)
@@ -673,9 +670,7 @@ fun interrupts(): Pair<Array<MicroOpcode>, List<MicroOpOffset>> {
     microcodeArray[164] = MicroOpcode.LoadConst(Register.INT_CAUSE, 3)
     microcodeArray[165] = MicroOpcode.ALUImmOp(MicroALUOpcode.SEXT, Register.SCRATCH_0, 1, Register.INT_DATA)
     microcodeArray[166] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.IP, Register.ADDRESS_WIDTH, Register.INT_RET_IP)
-    microcodeArray[167] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.SP, Register.ADDRESS_WIDTH, Register.INT_RET_SP)
     microcodeArray[168] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.INT_IP, Register.ADDRESS_WIDTH, Register.IP)
-    microcodeArray[169] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.INT_SP, Register.ADDRESS_WIDTH, Register.SP)
     microcodeArray[170] = MicroOpcode.ALUImmOp(MicroALUOpcode.ZEXT, Register.PRIV, 0, Register.INT_RET_PRIV)
     microcodeArray[171] = MicroOpcode.LoadConst(Register.PRIV, 1)
     microcodeArray[172] = MicroOpcode.ALUImmOp(MicroALUOpcode.OR, Register.HANDLING_INTERRUPT, 1, Register.HANDLING_INTERRUPT, endOfInstruction = true, operationSizeOverrideValue = OperationSize.QUAD)
@@ -930,72 +925,69 @@ fun miscOpcodes(): Pair<Array<MicroOpcode>, List<MicroOpOffset>> {
     val microcodeArray = Array<MicroOpcode>(640) {MicroOpcode.NOP} // 32 micro-ops per instructions
     val offsets = mutableListOf<MicroOpOffset>()
     
-    offsets.add(MicroOpOffset("IRet", 0))
-    // iret
+    offsets.add(MicroOpOffset("Syscall", 0))
+    // syscall
     microcodeArray[0] = MicroOpcode.ALUImmOp(MicroALUOpcode.TEST, Register.HANDLING_INTERRUPT, 1, Register.SCRATCH_0)
-    microcodeArray[1] = MicroOpcode.RelJumpImm(Register.SCRATCH_0, JumpCondition.ZERO, 512 - 7553)
-    microcodeArray[2] = MicroOpcode.LoadConst(Register.SCRATCH_0, 1)
-    microcodeArray[3] = MicroOpcode.ALURegOp(MicroALUOpcode.SHL, Register.SCRATCH_0, Register.INT_CAUSE, Register.SCRATCH_0, operationSizeOverrideValue = OperationSize.QUAD)
-    microcodeArray[4] = MicroOpcode.ALUImmOp(MicroALUOpcode.XOR, Register.SCRATCH_0, -1, Register.SCRATCH_0, operationSizeOverrideValue = OperationSize.QUAD)
-    microcodeArray[5] = MicroOpcode.ALURegOp(MicroALUOpcode.AND, Register.INT_PENDING, Register.SCRATCH_0, Register.INT_PENDING, operationSizeOverrideValue = OperationSize.QUAD)
-    microcodeArray[6] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.INT_RET_IP, Register.ADDRESS_WIDTH, Register.IP)
-    microcodeArray[7] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.INT_RET_SP, Register.ADDRESS_WIDTH, Register.SP)
-    microcodeArray[8] = MicroOpcode.ALUImmOp(MicroALUOpcode.ZEXT, Register.INT_RET_PRIV, 0, Register.PRIV)
-    microcodeArray[9] = MicroOpcode.ALUImmOp(MicroALUOpcode.AND, Register.HANDLING_INTERRUPT, 0, Register.HANDLING_INTERRUPT, endOfInstruction = true, operationSizeOverrideValue = OperationSize.QUAD)
+    microcodeArray[1] = MicroOpcode.RelJumpImm(Register.SCRATCH_0, JumpCondition.ZERO, 2)
+    microcodeArray[2] = MicroOpcode.LoadConst(Register.SPECIAL_OPERATIONS, SPECIAL_OPERATION_RESET)
+    microcodeArray[3] = MicroOpcode.ALUImmOp(MicroALUOpcode.OR, Register.INT_PENDING, 1, Register.INT_PENDING, operationSizeOverrideValue = OperationSize.QUAD)
+    microcodeArray[4] = MicroOpcode.LoadConst(Register.INT_CAUSE, 0)
+    microcodeArray[5] = MicroOpcode.LoadConst(Register.INT_DATA, 0)
+    microcodeArray[6] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.IP, Register.ADDRESS_WIDTH, Register.INT_RET_IP)
+    microcodeArray[8] = MicroOpcode.ALUImmOp(MicroALUOpcode.SEXT, Register.INT_IP, 1, Register.IP)
+    microcodeArray[10] = MicroOpcode.ALUImmOp(MicroALUOpcode.ZEXT, Register.PRIV, 0, Register.INT_RET_PRIV)
+    microcodeArray[11] = MicroOpcode.LoadConst(Register.PRIV, 1)
+    microcodeArray[12] = MicroOpcode.ALUImmOp(MicroALUOpcode.OR, Register.HANDLING_INTERRUPT, 1, Register.HANDLING_INTERRUPT, endOfInstruction = true, operationSizeOverrideValue = OperationSize.QUAD)
     
-    offsets.add(MicroOpOffset("Halt", 32))
-    // halt
-    microcodeArray[32] = MicroOpcode.ALUImmOp(MicroALUOpcode.OR, Register.HALT_STATUS, 1, Register.HALT_STATUS, endOfInstruction = true, updateIPToNextInstruction = true)
+    offsets.add(MicroOpOffset("ERet", 32))
+    // eret
+    microcodeArray[32] = MicroOpcode.ALUImmOp(MicroALUOpcode.TEST, Register.HANDLING_INTERRUPT, 1, Register.SCRATCH_0)
+    microcodeArray[33] = MicroOpcode.RelJumpImm(Register.SCRATCH_0, JumpCondition.ZERO, 512 - 7553)
+    microcodeArray[34] = MicroOpcode.LoadConst(Register.SCRATCH_0, 1)
+    microcodeArray[35] = MicroOpcode.ALURegOp(MicroALUOpcode.SHL, Register.SCRATCH_0, Register.INT_CAUSE, Register.SCRATCH_0, operationSizeOverrideValue = OperationSize.QUAD)
+    microcodeArray[36] = MicroOpcode.ALUImmOp(MicroALUOpcode.XOR, Register.SCRATCH_0, -1, Register.SCRATCH_0, operationSizeOverrideValue = OperationSize.QUAD)
+    microcodeArray[37] = MicroOpcode.ALURegOp(MicroALUOpcode.AND, Register.INT_PENDING, Register.SCRATCH_0, Register.INT_PENDING, operationSizeOverrideValue = OperationSize.QUAD)
+    microcodeArray[38] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.INT_RET_IP, Register.ADDRESS_WIDTH, Register.IP)
+    microcodeArray[40] = MicroOpcode.ALUImmOp(MicroALUOpcode.ZEXT, Register.INT_RET_PRIV, 0, Register.PRIV)
+    microcodeArray[41] = MicroOpcode.ALUImmOp(MicroALUOpcode.AND, Register.HANDLING_INTERRUPT, 0, Register.HANDLING_INTERRUPT, endOfInstruction = true, operationSizeOverrideValue = OperationSize.QUAD)
     
-    offsets.add(MicroOpOffset("Int", 64))
-    // int
-    microcodeArray[64] = MicroOpcode.ALUImmOp(MicroALUOpcode.TEST, Register.HANDLING_INTERRUPT, 1, Register.SCRATCH_0)
-    microcodeArray[65] = MicroOpcode.RelJumpImm(Register.SCRATCH_0, JumpCondition.ZERO, 2)
-    microcodeArray[66] = MicroOpcode.LoadConst(Register.SPECIAL_OPERATIONS, SPECIAL_OPERATION_RESET)
-    microcodeArray[67] = MicroOpcode.ALUImmOp(MicroALUOpcode.OR, Register.INT_PENDING, 1, Register.INT_PENDING, operationSizeOverrideValue = OperationSize.QUAD)
-    microcodeArray[68] = MicroOpcode.LoadConst(Register.INT_CAUSE, 0)
-    microcodeArray[69] = MicroOpcode.ALUImmOp(MicroALUOpcode.ZEXT, Register.IMMEDIATE, 3, Register.INT_DATA)
-    microcodeArray[70] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.IP, Register.ADDRESS_WIDTH, Register.INT_RET_IP)
-    microcodeArray[71] = MicroOpcode.ALURegOp(MicroALUOpcode.SEXT, Register.SP, Register.ADDRESS_WIDTH, Register.INT_RET_SP)
-    microcodeArray[72] = MicroOpcode.ALUImmOp(MicroALUOpcode.SEXT, Register.INT_IP, 1, Register.IP)
-    microcodeArray[73] = MicroOpcode.ALUImmOp(MicroALUOpcode.SEXT, Register.INT_SP, 1, Register.SP)
-    microcodeArray[74] = MicroOpcode.ALUImmOp(MicroALUOpcode.ZEXT, Register.PRIV, 0, Register.INT_RET_PRIV)
-    microcodeArray[75] = MicroOpcode.LoadConst(Register.PRIV, 1)
-    microcodeArray[76] = MicroOpcode.ALUImmOp(MicroALUOpcode.OR, Register.HANDLING_INTERRUPT, 1, Register.HANDLING_INTERRUPT, endOfInstruction = true, operationSizeOverrideValue = OperationSize.QUAD)
+    offsets.add(MicroOpOffset("Wait", 64))
+    // wait
+    microcodeArray[64] = MicroOpcode.ALUImmOp(MicroALUOpcode.OR, Register.HALT_STATUS, 1, Register.HALT_STATUS, endOfInstruction = true, updateIPToNextInstruction = true)
     
     offsets.add(MicroOpOffset("Data Prefetch", 128))
     // data prefetch
-    microcodeArray[128] = MicroOpcode.ALUImmOp(MicroALUOpcode.SEXT, Register.REGB, 3, Register.SCRATCH_0)
+    microcodeArray[128] = MicroOpcode.ALUImmOp(MicroALUOpcode.SEXT, Register.REGA, 3, Register.SCRATCH_0)
     microcodeArray[129] = MicroOpcode.LoadConst(Register.SPECIAL_OPERATIONS, SPECIAL_OPERATION_DATA_PREFETCH_LINE)
     microcodeArray[130] = MicroOpcode.ALUImmOp(MicroALUOpcode.ADD, Register.INVALID, 0, Register.INVALID, endOfInstruction = true, updateIPToNextInstruction = true)
     
     offsets.add(MicroOpOffset("Instruction Prefetch", 160))
     // instruction prefetch
-    microcodeArray[160] = MicroOpcode.ALUImmOp(MicroALUOpcode.SEXT, Register.REGB, 3, Register.SCRATCH_0)
+    microcodeArray[160] = MicroOpcode.ALUImmOp(MicroALUOpcode.SEXT, Register.REGA, 3, Register.SCRATCH_0)
     microcodeArray[161] = MicroOpcode.LoadConst(Register.SPECIAL_OPERATIONS, SPECIAL_OPERATION_INSTRUCTION_PREFETCH_LINE)
     microcodeArray[162] = MicroOpcode.ALUImmOp(MicroALUOpcode.ADD, Register.INVALID, 0, Register.INVALID, endOfInstruction = true, updateIPToNextInstruction = true)
     
     offsets.add(MicroOpOffset("Data Cache Flush", 192))
     // data cache flush
-    microcodeArray[192] = MicroOpcode.ALUImmOp(MicroALUOpcode.SEXT, Register.REGB, 3, Register.SCRATCH_0)
+    microcodeArray[192] = MicroOpcode.ALUImmOp(MicroALUOpcode.SEXT, Register.REGA, 3, Register.SCRATCH_0)
     microcodeArray[193] = MicroOpcode.LoadConst(Register.SPECIAL_OPERATIONS, SPECIAL_OPERATION_DCACHE_FLUSH_LINE)
     microcodeArray[194] = MicroOpcode.ALUImmOp(MicroALUOpcode.ADD, Register.INVALID, 0, Register.INVALID, endOfInstruction = true, updateIPToNextInstruction = true)
     
     offsets.add(MicroOpOffset("Instruction Cache Invalidate", 224))
     // instruction cache invalidate
-    microcodeArray[224] = MicroOpcode.ALUImmOp(MicroALUOpcode.SEXT, Register.REGB, 3, Register.SCRATCH_0)
+    microcodeArray[224] = MicroOpcode.ALUImmOp(MicroALUOpcode.SEXT, Register.REGA, 3, Register.SCRATCH_0)
     microcodeArray[225] = MicroOpcode.LoadConst(Register.SPECIAL_OPERATIONS, SPECIAL_OPERATION_ICACHE_INVALIDATE_LINE)
     microcodeArray[226] = MicroOpcode.ALUImmOp(MicroALUOpcode.ADD, Register.INVALID, 0, Register.INVALID, endOfInstruction = true, updateIPToNextInstruction = true)
     
     offsets.add(MicroOpOffset("Allocate Zero", 256))
     // allocate zero
-    microcodeArray[256] = MicroOpcode.ALUImmOp(MicroALUOpcode.SEXT, Register.REGB, 3, Register.SCRATCH_0)
+    microcodeArray[256] = MicroOpcode.ALUImmOp(MicroALUOpcode.SEXT, Register.REGA, 3, Register.SCRATCH_0)
     microcodeArray[257] = MicroOpcode.LoadConst(Register.SPECIAL_OPERATIONS, SPECIAL_OPERATION_ALLOC_ZERO)
     microcodeArray[258] = MicroOpcode.ALUImmOp(MicroALUOpcode.ADD, Register.INVALID, 0, Register.INVALID, endOfInstruction = true, updateIPToNextInstruction = true)
     
     offsets.add(MicroOpOffset("Data Cache Invalidate", 288))
     // data cache invalidate
-    microcodeArray[288] = MicroOpcode.ALUImmOp(MicroALUOpcode.SEXT, Register.REGB, 3, Register.SCRATCH_0)
+    microcodeArray[288] = MicroOpcode.ALUImmOp(MicroALUOpcode.SEXT, Register.REGA, 3, Register.SCRATCH_0)
     microcodeArray[289] = MicroOpcode.LoadConst(Register.SPECIAL_OPERATIONS, SPECIAL_OPERATION_DCACHE_INVALIDATE_LINE)
     microcodeArray[290] = MicroOpcode.ALUImmOp(MicroALUOpcode.ADD, Register.INVALID, 0, Register.INVALID, endOfInstruction = true, updateIPToNextInstruction = true)
     
